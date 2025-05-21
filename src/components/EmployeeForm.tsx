@@ -28,10 +28,13 @@ const employeeSchema = z.object({
   salary: z.coerce.number().positive({ message: "Salary must be a positive number" })
 });
 
+// Define the type based on our schema
+type EmployeeFormValues = z.infer<typeof employeeSchema>;
+
 const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSubmitSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof employeeSchema>>({
+  const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: {
       name: employee?.name || '',
@@ -41,7 +44,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSubmitSuccess }
     },
   });
 
-  const onSubmit = async (data: z.infer<typeof employeeSchema>) => {
+  const onSubmit = async (data: EmployeeFormValues) => {
     setIsSubmitting(true);
     try {
       if (employee) {
@@ -49,7 +52,13 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, onSubmitSuccess }
         await updateEmployee(employee.id, data);
       } else {
         // Create new employee
-        await createEmployee(data);
+        // We know all fields are required because of the schema validation
+        await createEmployee({
+          name: data.name,
+          phone_no: data.phone_no,
+          address: data.address,
+          salary: data.salary
+        });
       }
       onSubmitSuccess();
     } catch (error) {
