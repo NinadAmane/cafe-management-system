@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, ShoppingCart } from 'lucide-react';
 import { format } from 'date-fns';
+import OrderForm from './OrderForm';
+import { toast } from 'sonner';
 
 const Orders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -27,19 +29,22 @@ const Orders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const data = await getOrders();
+      setOrders(data);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load orders');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const data = await getOrders();
-        setOrders(data);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
   }, []);
 
@@ -51,7 +56,17 @@ const Orders = () => {
       setOrderDetailsOpen(true);
     } catch (error) {
       console.error('Error fetching order items:', error);
+      toast.error('Failed to load order details');
     }
+  };
+
+  const handleOpenAddDialog = () => {
+    setIsAddDialogOpen(true);
+  };
+
+  const handleOrderFormSubmit = () => {
+    fetchOrders();
+    setIsAddDialogOpen(false);
   };
 
   return (
@@ -61,7 +76,7 @@ const Orders = () => {
           <h1 className="text-3xl font-bold mb-2">Orders</h1>
           <p className="text-muted-foreground">Manage customer orders</p>
         </div>
-        <Button className="flex items-center gap-2">
+        <Button className="flex items-center gap-2" onClick={handleOpenAddDialog}>
           <Plus className="h-4 w-4" />
           New Order
         </Button>
@@ -119,6 +134,7 @@ const Orders = () => {
         </CardContent>
       </Card>
 
+      {/* Order Details Dialog */}
       <Dialog open={orderDetailsOpen} onOpenChange={setOrderDetailsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -175,6 +191,16 @@ const Orders = () => {
               </TableBody>
             </Table>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Order Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Create New Order</DialogTitle>
+          </DialogHeader>
+          <OrderForm onSubmitSuccess={handleOrderFormSubmit} />
         </DialogContent>
       </Dialog>
     </div>
