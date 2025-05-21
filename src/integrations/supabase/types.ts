@@ -9,7 +9,158 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          address: string
+          id: number
+          membership_status: string
+          name: string
+          phone_no: string
+        }
+        Insert: {
+          address: string
+          id?: number
+          membership_status: string
+          name: string
+          phone_no: string
+        }
+        Update: {
+          address?: string
+          id?: number
+          membership_status?: string
+          name?: string
+          phone_no?: string
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          address: string
+          id: number
+          name: string
+          phone_no: string
+          salary: number
+        }
+        Insert: {
+          address: string
+          id?: number
+          name: string
+          phone_no: string
+          salary: number
+        }
+        Update: {
+          address?: string
+          id?: number
+          name?: string
+          phone_no?: string
+          salary?: number
+        }
+        Relationships: []
+      }
+      menu_items: {
+        Row: {
+          category: string
+          employee_id: number | null
+          id: number
+          name: string
+          price: number
+        }
+        Insert: {
+          category: string
+          employee_id?: number | null
+          id?: number
+          name: string
+          price: number
+        }
+        Update: {
+          category?: string
+          employee_id?: number | null
+          id?: number
+          name?: string
+          price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          id: number
+          item_id: number | null
+          order_id: number | null
+          quantity: number
+        }
+        Insert: {
+          id?: number
+          item_id?: number | null
+          order_id?: number | null
+          quantity: number
+        }
+        Update: {
+          id?: number
+          item_id?: number | null
+          order_id?: number | null
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          customer_id: number | null
+          employee_id: number | null
+          id: number
+          order_date: string
+        }
+        Insert: {
+          customer_id?: number | null
+          employee_id?: number | null
+          id?: number
+          order_date?: string
+        }
+        Update: {
+          customer_id?: number | null
+          employee_id?: number | null
+          id?: number
+          order_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
