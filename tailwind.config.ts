@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,13 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Cafe theme colors
+				cafe: {
+					light: '#F5E6D8', // Light cream
+					medium: '#D2B48C', // Medium tan
+					dark: '#8B5A2B', // Dark brown
+					accent: '#A52A2A', // Deep red accent
 				}
 			},
 			borderRadius: {
