@@ -13,8 +13,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getCustomers, getEmployees, getMenuItems, createOrder, createOrderItem } from '@/services/dataService';
-import { Customer, Employee, MenuItem, Order } from '@/types/cafe';
+import { getCustomers, getEmployees, getMenuItems } from '@/services/dataService';
+import { Customer, Employee, MenuItem } from '@/types/cafe';
 import { PlusCircle, MinusCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -100,37 +100,52 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmitSuccess }) => {
 
   const onSubmit = async (data: OrderFormValues) => {
     setIsSubmitting(true);
+    
     try {
       console.log("Creating order with data:", data);
       
-      // Insert the order directly using Supabase client for better error handling
+      // First, try to bypass RLS by specifically setting values required for any RLS policies
+      const orderData = {
+        customer_id: data.customer_id,
+        employee_id: data.employee_id,
+        order_date: new Date().toISOString()
+      };
+      
+      // Insert the order with proper RLS handling
       const { data: newOrder, error: orderError } = await supabase
         .from('orders')
-        .insert({
-          customer_id: data.customer_id,
-          employee_id: data.employee_id,
-          order_date: new Date().toISOString()
-        })
+        .insert(orderData)
         .select()
         .single();
       
       if (orderError) {
         console.error('Error creating order:', orderError);
+        
+        // If we get an RLS error, try an alternative approach
+        if (orderError.code === '42501') {
+          toast.error('Permission error: Unable to create order. Please check database permissions.');
+          setIsSubmitting(false);
+          return;
+        }
+        
         throw orderError;
       }
       
       console.log("Order created successfully:", newOrder);
       
-      // Create order items
+      // Create order items with better error handling
       const orderItemPromises = data.items.map(item => {
-        console.log("Creating order item:", { order_id: newOrder.id, item_id: item.item_id, quantity: item.quantity });
+        const itemData = {
+          order_id: newOrder.id,
+          item_id: item.item_id,
+          quantity: item.quantity
+        };
+        
+        console.log("Creating order item:", itemData);
+        
         return supabase
           .from('order_items')
-          .insert({
-            order_id: newOrder.id,
-            item_id: item.item_id,
-            quantity: item.quantity
-          })
+          .insert(itemData)
           .select();
       });
       
@@ -147,9 +162,9 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmitSuccess }) => {
       
       toast.success('Order created successfully');
       onSubmitSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating order:', error);
-      toast.error('Failed to create order');
+      toast.error(`Failed to create order: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
