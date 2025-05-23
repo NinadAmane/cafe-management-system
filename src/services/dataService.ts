@@ -268,6 +268,7 @@ export const deleteMenuItem = async (id: number): Promise<void> => {
 
 // Order services
 export const getOrders = async (): Promise<Order[]> => {
+  console.log("Fetching orders...");
   const { data, error } = await supabase
     .from('orders')
     .select(`
@@ -299,6 +300,7 @@ export const getOrders = async (): Promise<Order[]> => {
     order.total = orderItems.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0);
   }
   
+  console.log("Fetched orders:", transformedOrders);
   return transformedOrders;
 };
 
@@ -337,6 +339,7 @@ export const getOrderById = async (id: number): Promise<Order | undefined> => {
 };
 
 export const createOrder = async (order: Omit<Order, 'id' | 'customerName' | 'employeeName' | 'total'>): Promise<Order> => {
+  console.log("Creating order with data:", order);
   const { data, error } = await supabase
     .from('orders')
     .insert(order)
@@ -349,6 +352,7 @@ export const createOrder = async (order: Omit<Order, 'id' | 'customerName' | 'em
     throw error;
   }
   
+  console.log("Order created:", data);
   toast.success('Order created successfully');
   return data;
 };
@@ -410,6 +414,7 @@ export const getOrderItemsByOrderId = async (orderId: number): Promise<OrderItem
 };
 
 export const createOrderItem = async (orderItem: Omit<OrderItem, 'id' | 'itemName' | 'price'>): Promise<OrderItem> => {
+  console.log("Creating order item with data:", orderItem);
   const { data, error } = await supabase
     .from('order_items')
     .insert(orderItem)
@@ -422,6 +427,7 @@ export const createOrderItem = async (orderItem: Omit<OrderItem, 'id' | 'itemNam
     throw error;
   }
   
+  console.log("Order item created:", data);
   return data;
 };
 

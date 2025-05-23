@@ -18,6 +18,7 @@ import { Customer, Employee, MenuItem, Order } from '@/types/cafe';
 import { PlusCircle, MinusCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { supabase } from "@/integrations/supabase/client";
 
 interface OrderFormProps {
   onSubmitSuccess: () => void;
@@ -100,23 +101,50 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmitSuccess }) => {
   const onSubmit = async (data: OrderFormValues) => {
     setIsSubmitting(true);
     try {
-      // Create the order first
-      const newOrder: Order = await createOrder({
-        customer_id: data.customer_id,
-        employee_id: data.employee_id,
-        order_date: new Date().toISOString()
-      });
-
-      // Then create all the order items
-      const promises = data.items.map(item => 
-        createOrderItem({
-          order_id: newOrder.id,
-          item_id: item.item_id,
-          quantity: item.quantity
-        })
-      );
+      console.log("Creating order with data:", data);
       
-      await Promise.all(promises);
+      // Insert the order directly using Supabase client for better error handling
+      const { data: newOrder, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          customer_id: data.customer_id,
+          employee_id: data.employee_id,
+          order_date: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        throw orderError;
+      }
+      
+      console.log("Order created successfully:", newOrder);
+      
+      // Create order items
+      const orderItemPromises = data.items.map(item => {
+        console.log("Creating order item:", { order_id: newOrder.id, item_id: item.item_id, quantity: item.quantity });
+        return supabase
+          .from('order_items')
+          .insert({
+            order_id: newOrder.id,
+            item_id: item.item_id,
+            quantity: item.quantity
+          })
+          .select();
+      });
+      
+      const results = await Promise.all(orderItemPromises);
+      
+      // Check for any errors in creating order items
+      const orderItemErrors = results.filter(result => result.error);
+      if (orderItemErrors.length > 0) {
+        console.error('Errors creating order items:', orderItemErrors);
+        toast.error('Some items could not be added to the order');
+      } else {
+        console.log("All order items created successfully");
+      }
+      
       toast.success('Order created successfully');
       onSubmitSuccess();
     } catch (error) {
