@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,8 +13,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createCustomer, updateCustomer } from '@/services/dataService';
+import { supabase } from '@/integrations/supabase/client';
 import { Customer } from '@/types/cafe';
+import { toast } from 'sonner';
 
 interface CustomerFormProps {
   customer?: Customer;
@@ -49,21 +49,38 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, onSubmitSuccess }
     setIsSubmitting(true);
     try {
       if (customer) {
-        // Update existing customer
-        await updateCustomer(customer.id, data);
+        // Update existing customer directly with Supabase
+        const { error } = await supabase
+          .from('customers')
+          .update(data)
+          .eq('id', customer.id);
+          
+        if (error) {
+          console.error('Error updating customer:', error);
+          toast.error(`Failed to update customer: ${error.message}`);
+          return;
+        }
+        
+        toast.success('Customer updated successfully');
       } else {
-        // Create new customer
-        // We know all fields are required because of the schema validation
-        await createCustomer({
-          name: data.name,
-          phone_no: data.phone_no,
-          address: data.address,
-          membership_status: data.membership_status
-        });
+        // Create new customer directly with Supabase
+        const { error } = await supabase
+          .from('customers')
+          .insert(data);
+          
+        if (error) {
+          console.error('Error creating customer:', error);
+          toast.error(`Failed to create customer: ${error.message}`);
+          return;
+        }
+        
+        toast.success('Customer added successfully');
       }
+      
       onSubmitSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving customer:', error);
+      toast.error(`Failed to save customer: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
