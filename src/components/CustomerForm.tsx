@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,11 +49,18 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, onSubmitSuccess }
   const onSubmit = async (data: CustomerFormValues) => {
     setIsSubmitting(true);
     try {
+      console.log('Submitting customer data:', data);
+      
       if (customer) {
-        // Update existing customer directly with Supabase
+        // Update existing customer
         const { error } = await supabase
           .from('customers')
-          .update(data)
+          .update({
+            name: data.name,
+            phone_no: data.phone_no,
+            address: data.address,
+            membership_status: data.membership_status
+          })
           .eq('id', customer.id);
           
         if (error) {
@@ -63,10 +71,19 @@ const CustomerForm: React.FC<CustomerFormProps> = ({ customer, onSubmitSuccess }
         
         toast.success('Customer updated successfully');
       } else {
-        // Create new customer directly with Supabase
+        // Create new customer - use complete data object
+        const customerData = {
+          name: data.name,
+          phone_no: data.phone_no,
+          address: data.address,
+          membership_status: data.membership_status
+        };
+        
+        console.log('Creating customer with data:', customerData);
+        
         const { error } = await supabase
           .from('customers')
-          .insert(data);
+          .insert(customerData);
           
         if (error) {
           console.error('Error creating customer:', error);

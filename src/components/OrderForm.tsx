@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -103,17 +104,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmitSuccess }) => {
     try {
       console.log("Creating order with data:", data);
       
-      // Prepare order data
-      const orderData = {
-        customer_id: data.customer_id,
-        employee_id: data.employee_id,
-        order_date: new Date().toISOString()
-      };
-      
-      // Direct SQL queries using Supabase's rpc for bypassing RLS
-      // For demo purposes only - in production, you'd use a server-side API endpoint
-      
-      // Insert the order using a more direct approach
+      // Use the Supabase function to create the order
       const { data: orderResult, error: orderError } = await supabase
         .rpc('create_order', {
           p_customer_id: data.customer_id,
@@ -121,28 +112,41 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmitSuccess }) => {
         });
         
       if (orderError) {
-        console.error('Error creating order with RPC:', orderError);
-        toast.error(`Permission error: ${orderError.message}. Trying alternative method...`);
+        console.error('Error creating order:', orderError);
+        toast.error(`Failed to create order: ${orderError.message}`);
+        return;
+      }
+      
+      // Get the order ID from the result
+      const orderId = orderResult && orderResult.length > 0 ? orderResult[0].order_id : null;
+      
+      if (!orderId) {
+        console.error('No order ID returned from function');
+        toast.error('Failed to get order ID after creation');
+        return;
+      }
+      
+      console.log("Order created successfully with ID:", orderId);
+      
+      // Add each item to the order
+      for (const item of data.items) {
+        const itemData = {
+          order_id: orderId,
+          item_id: item.item_id,
+          quantity: item.quantity
+        };
         
-        // Fallback to direct insert
-        const { data: newOrder, error: insertError } = await supabase
-          .from('orders')
-          .insert(orderData)
-          .select()
-          .single();
+        console.log("Creating order item:", itemData);
+        
+        const { error: itemError } = await supabase
+          .from('order_items')
+          .insert(itemData);
           
-        if (insertError) {
-          console.error('Fallback also failed:', insertError);
-          toast.error(`Failed to create order: ${insertError.message}`);
-          setIsSubmitting(false);
+        if (itemError) {
+          console.error('Error adding item to order:', itemError);
+          toast.error(`Error adding item to order: ${itemError.message}`);
           return;
         }
-        
-        console.log("Order created with fallback method:", newOrder);
-        await createOrderItems(newOrder.id, data.items);
-      } else {
-        console.log("Order created successfully with RPC:", orderResult);
-        await createOrderItems(orderResult.order_id, data.items);
       }
       
       toast.success('Order created successfully');
@@ -153,39 +157,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ onSubmitSuccess }) => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-  
-  // Helper function to create order items
-  const createOrderItems = async (orderId: number, items: any[]) => {
-    try {
-      // Add each item to the order
-      for (const item of items) {
-        const itemData = {
-          order_id: orderId,
-          item_id: item.item_id,
-          quantity: item.quantity
-        };
-        
-        console.log("Creating order item:", itemData);
-        
-        const { error } = await supabase
-          .from('order_items')
-          .insert(itemData);
-          
-        if (error) {
-          console.error('Error adding item to order:', error);
-          toast.error(`Error adding item to order: ${error.message}`);
-        }
-      }
-    } catch (error: any) {
-      console.error('Error creating order items:', error);
-      throw error;
-    }
-  };
-
-  const getItemPrice = (itemId: number) => {
-    const menuItem = menuItems.find(item => item.id === itemId);
-    return menuItem ? menuItem.price : 0;
   };
 
   const addItem = () => {

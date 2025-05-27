@@ -166,7 +166,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_order: {
+        Args: { p_customer_id: number; p_employee_id: number }
+        Returns: {
+          order_id: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
